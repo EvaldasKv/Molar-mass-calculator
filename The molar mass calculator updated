@@ -1,0 +1,86 @@
+elementai_list = {
+    "H": 1.008, "He": 4.003, "Li": 6.94, "Be": 9.012, "B": 10.81,
+    "C": 12.011, "N": 14.007, "O": 15.999, "F": 18.998, "Ne": 20.180,
+    "Na": 22.990, "Mg": 24.305, "Al": 26.982, "Si": 28.085, "P": 30.974,
+    "S": 32.06, "Cl": 35.45, "Ar": 39.948, "K": 39.098, "Ca": 40.078,
+    "Fe": 55.845, "Cu": 63.546, "Zn": 65.38, "Ag": 107.87, "Au": 196.97, "Pb": 207.2
+}
+
+def parse_formula(formula):
+    total_counts = {}
+
+    parts = formula.split('*') # Hidratai
+    for part in parts:
+        i = 0
+        multiplier = 1
+        while i < len(part) and part[i].isdigit():
+            i += 1
+        if i > 0:
+            multiplier = int(part[:i])
+            part = part[i:]
+
+        def parse_group(s):
+            counts = {}
+            i = 0
+            while i < len(s):
+                c = s[i]
+                if c in "([": 
+                    open_bracket = c
+                    close_bracket = ')' if c == '(' else ']'
+                    depth = 1
+                    j = i + 1
+                    while j < len(s):
+                        if s[j] == open_bracket:
+                            depth += 1
+                        elif s[j] == close_bracket:
+                            depth -= 1
+                        if depth == 0:
+                            break
+                        j += 1
+                    inner_counts = parse_group(s[i+1:j])
+                    i = j + 1
+
+                    num = ''
+                    while i < len(s) and s[i].isdigit():
+                        num += s[i]
+                        i += 1
+                    num = int(num) if num else 1
+                    for el, cnt in inner_counts.items():
+                        counts[el] = counts.get(el, 0) + cnt * num
+                elif c.isalpha():
+                    el = c
+                    i += 1
+                    if i < len(s) and s[i].islower():
+                        el += s[i]
+                        i += 1
+                    num = ''
+                    while i < len(s) and s[i].isdigit():
+                        num += s[i]
+                        i += 1
+                    num = int(num) if num else 1
+                    counts[el] = counts.get(el, 0) + num
+                else:
+                    i += 1
+            return counts
+
+        part_counts = parse_group(part)
+        for el, cnt in part_counts.items():
+            total_counts[el] = total_counts.get(el, 0) + cnt * multiplier
+
+    return total_counts
+
+def calculate_molar_mass(counts):
+    mass = 0
+    for el, cnt in counts.items():
+        if el in elementai_list:
+            mass += elementai_list[el] * cnt
+        else:
+            print(f"Warning: element '{el}' not found")
+    return mass
+
+
+formula = input("Įveskite formulę: ")
+counts = parse_formula(formula)
+mass = calculate_molar_mass(counts)
+print(f"Elementų kiekiai: {counts}")
+print(f"Molinė masė: {mass:.2f}")
